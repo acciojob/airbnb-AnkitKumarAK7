@@ -4,33 +4,42 @@ import com.driver.model.Booking;
 import com.driver.model.Facility;
 import com.driver.model.Hotel;
 import com.driver.model.User;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class HotelManagementService {
     
-    @Autowired
-    static
-    HotelManagementRepository hotelManagementRepository;
+   // @Autowired
+   HotelManagementRepository hotelManagementRepository = new HotelManagementRepository();
 
-    public void addHotel(Hotel hotel) {
-         hotelManagementRepository.addHotel(hotel);
+    public String addHotel(Hotel hotel) {
+
+        return hotelManagementRepository.addHotel(hotel);
+    }
+
+    public Hotel getHotel(String hotelName) {
+        return hotelManagementRepository.getHotel(hotelName);
     }
 
     public Integer addUser(User user) {
-        return hotelManagementRepository.addUser(user);
+
+        hotelManagementRepository.addUser(user);
+        return user.getaadharCardNo();
     }
 
-    public static String getHotelWithMostFacilities() {
-        return hotelManagementRepository.getHotelWithMostFacilities();
+    public String getHotelWithMostFacilities() {
+        String response = hotelManagementRepository.getHotelWithMostFacilities();
+        return response;
+    }
+    public int bookARoom(Booking booking) {
+        String bookingId = String.valueOf(UUID.randomUUID());
+        Booking booking1 = new Booking(bookingId,booking.getBookingAadharCard(),booking.getNoOfRooms(),booking.getBookingPersonName(),booking.getHotelName());
+        return hotelManagementRepository.bookARoom(booking1);
+    }
 
-    }
-    public static int bookARoom(Booking booking) {
-        return hotelManagementRepository.bookARoom(booking);
-    }
 
     public int getBooking(Integer aadharCard) {
         return hotelManagementRepository.getBooking(aadharCard);

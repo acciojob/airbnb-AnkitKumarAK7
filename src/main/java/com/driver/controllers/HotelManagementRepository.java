@@ -6,93 +6,108 @@ import com.driver.model.Hotel;
 import com.driver.model.User;
 import org.springframework.stereotype.Repository;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+
 
 @Repository
 public class HotelManagementRepository {
-    Map<String, Hotel> hotelDb = new HashMap<>();
-    Map<Integer, User> userDb = new HashMap<>();
-    Map<String, Booking> bookingDb = new HashMap<>();
+    HashMap<String, Hotel> hotelDb = new HashMap<>();
+    HashMap<Integer, User> userDb = new HashMap<>();
+    HashMap<Integer,List<Booking>> userBookingsDb = new HashMap<>();
 
-    public void addHotel(Hotel hotel) {
-        if (hotel != null && hotel.getHotelName() != null) {
-            // Check for duplicate hotel names before adding
-            if (!hotelDb.containsKey(hotel.getHotelName())) {
-                hotelDb.put(hotel.getHotelName(), hotel);
-            }
+    public String addHotel(Hotel hotel) {
+        if (hotel.getHotelName() == null || hotel == null) {
+            return "FAILURE";
         }
+
+        if (hotelDb.containsKey(hotel.getHotelName())) {
+            return "FAILURE";
+        }
+
+        hotelDb.put(hotel.getHotelName(),hotel);
+        return "SUCCESS";
     }
 
-    public Integer addUser(User user) {
-        if (user != null) {
-            userDb.put(user.getaadharCardNo(), user);
+    public Hotel getHotel(String hotelName) {
+        if (hotelDb.containsKey(hotelName)) {
+            return hotelDb.get(hotelName);
         }
+
         return null;
+    }
+    public void addUser(User user) {
+        userDb.put(user.getaadharCardNo(), user);
+        return;
     }
 
     public String getHotelWithMostFacilities() {
-        String hotelWithMostFacilities = "";
-        int maxFacilitiesCount = 0;
+        int maxFacilities = 0;
+        for (String name: hotelDb.keySet()) {
+            Hotel hotel = hotelDb.get(name);
+            List<Facility> list = hotel.getFacilities();
+            maxFacilities = Math.max(maxFacilities, list.size());
+        }
 
-        // Iterate through all hotels in your database
-        for (Hotel hotel : hotelDb.values()) {
-            int facilitiesCount = hotel.getFacilities().size();
+        if (maxFacilities == 0) {
+            return "";
+        }
 
-            // Check if this hotel has more facilities than the current max
-            if (facilitiesCount > maxFacilitiesCount) {
-                maxFacilitiesCount = facilitiesCount;
-                hotelWithMostFacilities = hotel.getHotelName();
-            } else if (facilitiesCount == maxFacilitiesCount) {
-                // If there's a tie, compare hotel names lexicographically
-                hotelWithMostFacilities = hotel.getHotelName().compareTo(hotelWithMostFacilities) < 0
-                        ? hotel.getHotelName()
-                        : hotelWithMostFacilities;
+        List<String> mostFacilityHotels = new ArrayList<>();
+
+        for (String name: hotelDb.keySet()) {
+            Hotel hotel = hotelDb.get(name);
+            List<Facility> list = hotel.getFacilities();
+            if (list.size() == maxFacilities) {
+                mostFacilityHotels.add(name);
             }
         }
-        return hotelWithMostFacilities;
+
+        Collections.sort(mostFacilityHotels);
+        return mostFacilityHotels.get(0);
     }
 
     public int bookARoom(Booking booking) {
-        // Generate a random UUID as the bookingId
-        String bookingId = UUID.randomUUID().toString();
-        booking.setBookingId(bookingId);
+        String hotelName = booking.getHotelName();
+        Hotel hotel = hotelDb.get(hotelName);
 
-        return 0; // Cast the double to int if needed
+        if (booking.getNoOfRooms() > hotel.getAvailableRooms()) return -1;
+
+        int amountToBePaid = booking.getNoOfRooms() * hotel.getPricePerNight();
+
+        booking.setAmountToBePaid(amountToBePaid);
+        int aadharCard = booking.getBookingAadharCard();
+
+        List<Booking> listOfBookingsByUser = new ArrayList<>();
+        if (userBookingsDb.containsKey(aadharCard)) {
+            listOfBookingsByUser = userBookingsDb.get(aadharCard);
+        }
+
+        listOfBookingsByUser.add(booking);
+        userBookingsDb.put(aadharCard,listOfBookingsByUser);
+        return amountToBePaid;
     }
 
     public int getBooking(Integer aadharCard) {
-        int bookingsCount = 0;
+        if (!userBookingsDb.containsKey(aadharCard)) return 0;
 
-        for (Booking booking : bookingDb.values()) {
-            // Check if the booking is associated with the specified aadharCard
-            if (booking.getBookingAadharCard()== aadharCard) {
-                bookingsCount++;
-            }
-        }
-        return bookingsCount;
+        return userBookingsDb.get(aadharCard).size();
     }
 
     public Hotel updateFacilities(List<Facility> newFacilities, String hotelName) {
-        // Get the hotel from the hotelDb based on the hotelName
         Hotel hotel = hotelDb.get(hotelName);
 
-        if (hotel != null) {
-            // Get the current facilities of the hotel
-            List<Facility> currentFacilities = hotel.getFacilities();
+        List<Facility> currFacilities = hotel.getFacilities();
 
-            // Add new facilities to the hotel's facilities list if they are not already present
-            for (Facility newFacility : newFacilities) {
-                if (!currentFacilities.contains(newFacility)) {
-                    currentFacilities.add(newFacility);
-                }
+        for (Facility facility: newFacilities) {
+            if (!currFacilities.contains(facility)) {
+                currFacilities.add(facility);
             }
+        }
 
-            // Update the hotel's facilities list in the hotelDb
-            hotel.setFacilities(currentFacilities);
-    }
+        hotel.setFacilities(currFacilities);
         return hotel;
    }
  }
